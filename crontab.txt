@@ -1,0 +1,2 @@
+# m   h  dom mon dow   command
+  5  19    *   *   *   docker compose run --rm certbot renew && docker compose exec nginx service nginx reload

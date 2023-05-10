@@ -1,8 +1,26 @@
 version: "3.3"
 services:
-#  mail:
-#    image: bytemark/smtp
-#    restart: always
+  nginx:
+    image: nginx:1.24
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - nginx-jscache:/var/run/nginx-cache/jscache
+
+  certbot:
+    image: certbot/certbot:latest
+    depends_on:
+      - nginx
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt:rw
+      - ./certbot/www:/var/www/certbot:rw
+    profiles:
+      - certbot
 
   plausible_db:
     # supported versions are 12, 13, and 14
@@ -32,11 +50,15 @@ services:
     depends_on:
       - plausible_db
       - plausible_events_db
-#      - mail
-    ports:
-      - 8000:8000
     env_file:
       - plausible-conf.env
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: plausible nginx certbot plausible_db plausible_events_db
 
 volumes:
   db-data:
@@ -44,4 +66,6 @@ volumes:
   event-data:
     driver: local
   geoip:
+    driver: local
+  nginx-jscache:
     driver: local
